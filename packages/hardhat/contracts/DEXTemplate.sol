@@ -214,7 +214,7 @@ contract DEX {
         if (!sent) {
             revert DEX__TransferFailed();
         }
-        require(token.transfer(msg.sender, tokenAmount));
+        _sendTokenTo(token, msg.sender, tokenAmount);
         emit LiquidityRemoved(msg.sender, amount, ethWithdrawn, tokenAmount);
         return (ethWithdrawn, tokenAmount);
     }
