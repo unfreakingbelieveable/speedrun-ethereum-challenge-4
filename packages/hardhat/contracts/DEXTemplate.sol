@@ -141,11 +141,7 @@ contract DEX {
     function tokenToEth(uint256 tokenInput) public returns (uint256 ethOutput) {
         require(tokenInput > 0, "cannot swap 0 tokens");
         uint256 token_reserve = token.balanceOf(address(this));
-        uint256 ethOutput = price(
-            tokenInput,
-            token_reserve,
-            address(this).balance
-        );
+        ethOutput = price(tokenInput, token_reserve, address(this).balance);
         require(
             token.transferFrom(msg.sender, address(this), tokenInput),
             "tokenToEth(): reverted swap."
