@@ -6,6 +6,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 error DEX__AlreadyInit();
+error DEX__TransferFailed();
+error DEX__CannotSwapZero();
+error DEX__NotEnoughLiquidity();
 
 /**
  * @title DEX Template
@@ -118,7 +121,9 @@ contract DEX {
      * @notice sends Ether to DEX in exchange for $BAL
      */
     function ethToToken() public payable returns (uint256 tokenOutput) {
-        require(msg.value > 0, "cannot swap 0 ETH");
+        if (msg.value == 0) {
+            revert DEX__CannotSwapZero();
+        }
         uint256 ethReserve = address(this).balance.sub(msg.value);
         uint256 token_reserve = token.balanceOf(address(this));
         tokenOutput = price(msg.value, ethReserve, token_reserve);
@@ -139,7 +144,9 @@ contract DEX {
      * @notice sends $BAL tokens to DEX in exchange for Ether
      */
     function tokenToEth(uint256 tokenInput) public returns (uint256 ethOutput) {
-        require(tokenInput > 0, "cannot swap 0 tokens");
+        if (tokenInput == 0) {
+            revert DEX__CannotSwapZero();
+        }
         uint256 token_reserve = token.balanceOf(address(this));
         ethOutput = price(tokenInput, token_reserve, address(this).balance);
         require(
@@ -147,7 +154,9 @@ contract DEX {
             "tokenToEth(): reverted swap."
         );
         (bool sent, ) = msg.sender.call{value: ethOutput}("");
-        require(sent, "tokenToEth: revert in transferring eth to you!");
+        if (!sent) {
+            revert DEX__TransferFailed();
+        }
         emit TokenToEthSwap(
             msg.sender,
             "Balloons to ETH",
@@ -191,10 +200,9 @@ contract DEX {
         public
         returns (uint256 eth_amount, uint256 token_amount)
     {
-        require(
-            liquidity[msg.sender] >= amount,
-            "withdraw: sender does not have enough liquidity to withdraw."
-        );
+        if (liquidity[msg.sender] < amount) {
+            revert DEX__NotEnoughLiquidity();
+        }
         uint256 ethReserve = address(this).balance;
         uint256 tokenReserve = token.balanceOf(address(this));
         uint256 ethWithdrawn;
@@ -205,7 +213,9 @@ contract DEX {
         liquidity[msg.sender] = liquidity[msg.sender].sub(amount);
         totalLiquidity = totalLiquidity.sub(amount);
         (bool sent, ) = payable(msg.sender).call{value: ethWithdrawn}("");
-        require(sent, "withdraw(): revert in transferring eth to you!");
+        if (!sent) {
+            revert DEX__TransferFailed();
+        }
         require(token.transfer(msg.sender, tokenAmount));
         emit LiquidityRemoved(msg.sender, amount, ethWithdrawn, tokenAmount);
         return (ethWithdrawn, tokenAmount);
