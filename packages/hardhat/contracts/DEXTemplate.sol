@@ -87,10 +87,7 @@ contract DEX {
         }
 
         totalLiquidity = address(this).balance;
-        require(
-            token.transferFrom(msg.sender, address(this), tokens),
-            "Tokens not transferred!"
-        );
+        _getTokenFrom(token, msg.sender, address(this), tokens);
         liquidity[msg.sender] = totalLiquidity;
         return totalLiquidity;
     }
@@ -147,10 +144,7 @@ contract DEX {
         }
         uint256 token_reserve = token.balanceOf(address(this));
         ethOutput = price(tokenInput, token_reserve, address(this).balance);
-        require(
-            token.transferFrom(msg.sender, address(this), tokenInput),
-            "tokenToEth(): reverted swap."
-        );
+        _getTokenFrom(token, msg.sender, address(this), tokenInput);
         (bool sent, ) = msg.sender.call{value: ethOutput}("");
         if (!sent) {
             revert DEX__TransferFailed();
@@ -181,7 +175,6 @@ contract DEX {
         totalLiquidity = totalLiquidity.add(liquidityMinted);
 
         _getTokenFrom(token, msg.sender, address(this), tokenDeposit);
-        //require(token.transferFrom(msg.sender, address(this), tokenDeposit));
         emit LiquidityProvided(
             msg.sender,
             liquidityMinted,
