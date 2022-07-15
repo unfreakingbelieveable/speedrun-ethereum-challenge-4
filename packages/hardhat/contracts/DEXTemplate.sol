@@ -180,7 +180,8 @@ contract DEX {
         liquidity[msg.sender] = liquidity[msg.sender].add(liquidityMinted);
         totalLiquidity = totalLiquidity.add(liquidityMinted);
 
-        require(token.transferFrom(msg.sender, address(this), tokenDeposit));
+        _getTokenFrom(token, msg.sender, address(this), tokenDeposit);
+        //require(token.transferFrom(msg.sender, address(this), tokenDeposit));
         emit LiquidityProvided(
             msg.sender,
             liquidityMinted,
@@ -226,6 +227,25 @@ contract DEX {
     ) private {
         (bool success, ) = address(_token).call(
             abi.encodeWithSignature("transfer(address,uint256)", _to, _amount)
+        );
+        if (!success) {
+            revert DEX__TransferFailed();
+        }
+    }
+
+    function _getTokenFrom(
+        IERC20 _token,
+        address _from,
+        address _to,
+        uint256 _amount
+    ) private {
+        (bool success, ) = address(_token).call(
+            abi.encodeWithSignature(
+                "transferFrom(address,address,uint256)",
+                _from,
+                _to,
+                _amount
+            )
         );
         if (!success) {
             revert DEX__TransferFailed();
