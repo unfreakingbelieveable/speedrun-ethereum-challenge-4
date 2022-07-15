@@ -128,10 +128,8 @@ contract DEX {
         uint256 token_reserve = token.balanceOf(address(this));
         tokenOutput = price(msg.value, ethReserve, token_reserve);
 
-        require(
-            token.transfer(msg.sender, tokenOutput),
-            "ethToToken(): reverted swap."
-        );
+        _sendTokenTo(token, msg.sender, tokenOutput);
+
         emit EthToTokenSwap(
             msg.sender,
             "Eth to Balloons",
@@ -219,5 +217,18 @@ contract DEX {
         require(token.transfer(msg.sender, tokenAmount));
         emit LiquidityRemoved(msg.sender, amount, ethWithdrawn, tokenAmount);
         return (ethWithdrawn, tokenAmount);
+    }
+
+    function _sendTokenTo(
+        IERC20 _token,
+        address _to,
+        uint256 _amount
+    ) private {
+        (bool success, ) = address(_token).call(
+            abi.encodeWithSignature("transfer(address,uint256)", _to, _amount)
+        );
+        if (!success) {
+            revert DEX__TransferFailed();
+        }
     }
 }
